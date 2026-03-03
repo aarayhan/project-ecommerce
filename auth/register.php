@@ -4,6 +4,7 @@ require_once '../config/database.php';
 
 $error = '';
 $success = '';
+$redirect = $_GET['redirect'] ?? '';
 
 // Initialize form variables
 $username = '';
@@ -60,8 +61,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         'user' // Default role adalah user
                     ]);
                     
-                    if ($result) {
+if ($result) {
                         $success = 'Registrasi berhasil! Silakan login dengan akun Anda.';
+                        // Auto login after registration
+                        $_SESSION['user_id'] = $pdo->lastInsertId();
+                        $_SESSION['username'] = $username;
+                        $_SESSION['role'] = 'user';
+                        
+                        if ($redirect == 'cart') {
+                            header("Location: ../public/cart.php");
+                        } else {
+                            header("Location: ../public/index.php");
+                        }
+                        exit();
                         // Reset form
                         $username = '';
                         $email = '';

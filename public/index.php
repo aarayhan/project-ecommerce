@@ -1,6 +1,9 @@
 <?php
 session_start();
 require_once '../config/database.php';
+require_once '../config/cart_helper.php';
+
+$cart_count = getCartCount();
 
 // Get search parameters
 $search = $_GET['search'] ?? '';
@@ -127,7 +130,13 @@ $books = $stmt->fetchAll();
                     </div>
                     <span class="text-2xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">PadViolett</span>
                 </div>
-                <div class="flex items-center space-x-6">
+<div class="flex items-center space-x-6">
+                    <a href="cart.php" class="relative text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <?php if ($cart_count > 0): ?>
+                            <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center"><?= $cart_count ?></span>
+                        <?php endif; ?>
+                    </a>
                     <?php if (isset($_SESSION['user_id'])): ?>
                         <div class="flex items-center space-x-3">
                             <div class="w-10 h-10 bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full flex items-center justify-center">
@@ -353,10 +362,17 @@ $books = $stmt->fetchAll();
                             </div>
                         </div>
                         
-                        <!-- Tombol -->
-                        <a href="book_detail.php?id=<?= $book['id'] ?>" class="block w-full bg-purple-600 hover:bg-purple-800 text-white font-medium py-2 md:py-3 rounded-lg text-xs sm:text-sm transition-colors duration-500 text-center">
-                            Lihat Detail
-                        </a>
+<!-- Tombol -->
+                        <div class="flex space-x-2">
+                            <a href="book_detail.php?id=<?= $book['id'] ?>" class="flex-1 bg-purple-600 hover:bg-purple-800 text-white font-medium py-2 md:py-3 rounded-lg text-xs sm:text-sm transition-colors duration-500 text-center">
+                                Lihat Detail
+                            </a>
+                            <?php if ($book['stock'] > 0): ?>
+                                <button onclick="addToCart(<?= $book['id'] ?>, '<?= addslashes($book['title']) ?>', '<?= addslashes($book['author']) ?>', <?= $book['price'] ?>, '<?= addslashes($book['cover']) ?>', <?= $book['stock'] ?>)" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 md:py-3 rounded-lg text-xs sm:text-sm transition-colors duration-500 px-3">
+                                    <i class="fas fa-cart-plus"></i>
+                                </button>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -442,7 +458,47 @@ $books = $stmt->fetchAll();
         </div>
     </footer>
 
-    <script>
+<script>
+        function addToCart(bookId, title, author, price, cover, stock) {
+            fetch('cart_ajax.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'action=add&book_id=' + bookId + '&title=' + encodeURIComponent(title) + '&author=' + encodeURIComponent(author) + '&price=' + price + '&cover=' + encodeURIComponent(cover) + '&stock=' + stock
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateCartBadge(data.cart_count);
+                    alert('Buku "' + title + '" berhasil ditambahkan ke keranjang!');
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan. Silakan coba lagi.');
+            });
+        }
+
+        function updateCartBadge(count) {
+            let badge = document.querySelector('.cart-badge');
+            if (count > 0) {
+                if (badge) {
+                    badge.textContent = count;
+                } else {
+                    const cartLink = document.querySelector('a[href="cart.php"]');
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'cart-badge absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center';
+                    newBadge.textContent = count;
+                    cartLink.appendChild(newBadge);
+                }
+            } else {
+                if (badge) badge.remove();
+            }
+        }
+
         // Auto-submit form when Enter is pressed in search box
         document.querySelector('input[name="search"]').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {

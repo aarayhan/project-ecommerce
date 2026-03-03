@@ -14,6 +14,7 @@ if (isset($_SESSION['user_id'])) {
 
 $error = '';
 $success = '';
+$redirect = $_GET['redirect'] ?? '';
 
 // Check for logout success message
 if (isset($_GET['logout']) && $_GET['logout'] == 'success') {
@@ -33,7 +34,9 @@ if ($_POST) {
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
         
-        if ($user['role'] == 'admin') {
+        if ($redirect == 'cart') {
+            header("Location: ../public/cart.php");
+        } elseif ($user['role'] == 'admin') {
             header("Location: ../admin/dashboard.php");
         } else {
             header("Location: ../public/index.php");
